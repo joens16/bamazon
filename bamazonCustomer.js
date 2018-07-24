@@ -32,6 +32,7 @@ var displayItems = () => {
       console.log("item number: " + res[i].item_id)
       console.log("item: " + res[i].product_name)
       console.log("price: $" + res[i].price)
+      console.log(" - - - - - - - - - - - - -  ")
 
       // console.log(res);
       // connection.end();
@@ -40,9 +41,6 @@ var displayItems = () => {
   })
 }
 
-var validator = (value) => {
-
-}
 // // instantiate
 // var table = new Table({
 //   head: ['TH 1 label', 'TH 2 label']
@@ -74,22 +72,40 @@ var itemsToBuy = () => {
     ])
     .then(function (itemsToBuy) {
       var items = itemsToBuy.item_id
-      var quantity = itemsToBuy.item_id
+      var quantity = itemsToBuy.quantity
 
       var theQuery = 'SELECT * FROM products WHERE ?';
 
       connection.query(theQuery, { item_id: items }, function (err, res) {
         if (err) throw err
 
-        if (res.lenght === 0){
+        if (res.lenght === 0) {
           console.log("Not a valid ID. Please try again")
           displayItems()
         }
         else {
           var productDescription = res[0]
 
-          if (quantity <= productDescription.stock_quantity){
-            console.log(productDescription.product_name + " - This product is available. Please place an order!")
+          if (quantity <= productDescription.stock_quantity) {
+            console.log(" - - - - - - - - - - - - -  ")
+            console.log(productDescription.product_name + " This product is available. Please place an order!")
+            console.log(" - - - - - - - - - - - - -  ")
+
+            var queryUpdate = "UPDATE products SET stock_quantity = " + (productDescription.stock_quantity - quantity) + "WHERE item_id = " + items
+
+            connection.query(queryUpdate, function (err, data) {
+              if (err) throw err;
+              console.log(" - - - - - - - - - - - - -  ")
+              console.log("Congrats! Thank you for placing an order! Your total will be $" +quantity * productDescription.price)
+              console.log(" - - - - - - - - - - - - -  ")
+              connection.end();
+              
+            })
+          }else {
+            console.log(" - - - - - - - - - - - - -  ")
+            console.log("We apologize. At this time we do not have that quantity available. Please adjust your order for " + productDescription.product_name+ "s")
+            console.log(" - - - - - - - - - - - - -  ")
+
           }
         }
       })
