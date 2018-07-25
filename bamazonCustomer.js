@@ -32,6 +32,7 @@ var displayItems = () => {
       console.log("item number: " + res[i].item_id)
       console.log("item: " + res[i].product_name)
       console.log("price: $" + res[i].price)
+      console.log("Quantity Available: " + res[i].stock_quantity)
       console.log(" - - - - - - - - - - - - -  ")
 
       // console.log(res);
@@ -59,55 +60,106 @@ var itemsToBuy = () => {
       // Here we create a basic text prompt.
       {
         type: "input",
-        message: "What is your the ID of the product you would like to buy?",
+        message: "What is the ID of the product you would like to buy?",
         name: "item_id",
         filter: Number
       },
       {
         type: "input",
         message: "How many units of this product would you like to buy??",
-        name: "Units",
+        name: "units",
         filter: Number
       }
     ])
-    .then(function (itemsToBuy) {
-      var items = itemsToBuy.item_id
-      var quantity = itemsToBuy.quantity
+    .then(function (answer) {
 
-      var theQuery = 'SELECT * FROM products WHERE ?';
 
-      connection.query(theQuery, { item_id: items }, function (err, res) {
-        if (err) throw err
+      var items = answer.item_id;
+      var quantity = answer.units;
 
-        if (res.lenght === 0) {
-          console.log("Not a valid ID. Please try again")
-          displayItems()
-        }
-        else {
-          var productDescription = res[0]
+      verifyStock(items, quantity);
+     
+    //   var theQuery = 'SELECT * FROM products WHERE ?';
 
-          if (quantity <= productDescription.stock_quantity) {
-            console.log(" - - - - - - - - - - - - -  ")
-            console.log(productDescription.product_name + " This product is available. Please place an order!")
-            console.log(" - - - - - - - - - - - - -  ")
+    //   connection.query(theQuery, items, function (err, res) {
+    //     if (err) throw err
 
-            var queryUpdate = "UPDATE products SET stock_quantity = " + (productDescription.stock_quantity - quantity) + "WHERE item_id = " + items
+    //     if (res.lenght === 0) {
+    //       console.log("Not a valid ID. Please try again");
+    //       displayItems();
+    //     }
+    //     else {
+    //       // var productDescription = res[0]
 
-            connection.query(queryUpdate, function (err, data) {
-              if (err) throw err;
-              console.log(" - - - - - - - - - - - - -  ")
-              console.log("Congrats! Thank you for placing an order! Your total will be $" +quantity * productDescription.price)
-              console.log(" - - - - - - - - - - - - -  ")
-              connection.end();
-              
-            })
-          }else {
-            console.log(" - - - - - - - - - - - - -  ")
-            console.log("We apologize. At this time we do not have that quantity available. Please adjust your order for " + productDescription.product_name+ "s")
-            console.log(" - - - - - - - - - - - - -  ")
+    //       // if (quantity <= productDescription.stock_quantity) {
+    //       //   console.log(" - - - - - - - - - - - - -  ")
+    //       //   console.log(productDescription.product_name + " This product is available. Please place an order!")
+    //       //   console.log(" - - - - - - - - - - - - -  ")
 
-          }
-        }
-      })
-    })
+    //       //   var queryUpdate = "UPDATE products SET stock_quantity = " + (productDescription.stock_quantity - quantity) + "WHERE item_id = " + items
+
+    //       //   connection.query(queryUpdate, function (err, data) {
+    //       //     if (err) throw err;
+    //       //     console.log(" - - - - - - - - - - - - -  ")
+    //       //     console.log("Congrats! Thank you for placing an order! Your total will be $" + quantity * productDescription.price)
+    //       //     console.log(" - - - - - - - - - - - - -  ")
+    //       //     connection.end();
+
+    //       //   })
+    //       // } else {
+    //       //   console.log(" - - - - - - - - - - - - -  ")
+    //       //   console.log("We apologize. At this time we do not have that quantity available. Please adjust your order for " + productDescription.product_name + "s")
+    //       //   console.log(" - - - - - - - - - - - - -  ")
+
+    //       // }
+    //     }
+    //   });
+    });
 }
+
+function verifyStock(id, count) {
+
+  var theQuery = 'SELECT stock_quantity FROM products WHERE item_id = ?';
+  connection.query(theQuery, [id], function (err, res) {
+    for (let i = 0; i < res.length; i++) {
+      var quantity = res[i].stock_quantity;
+      if (quantity < count) {
+        console.log("We apologize. At this time we do not have that quantity available. Please adjust your order for " + res[i].product_name + "s");
+      } else {
+        updateStock(id, count);
+        totalPrice(id, count);
+      }
+    }  
+
+  });
+}
+
+function updateStock(id, count) {
+  var theQuery = 'SELECT stock_quantity FROM products WHERE item_id = ?';
+  connection.query(theQuery, [id], function (err, res) {
+    for (let i = 0; i < res.length; i++) {
+      var newQuantity = res[i].stock_quantity - count;
+      var query = "UPDATE products SET stock_quantity = ? WHERE item_id = ?";
+      connection.query(query, [newQuantity, id], function (err, res2) {
+        if (err) throw err;
+  
+      });
+  
+    }
+  });
+
+}
+
+
+function totalPrice(id, count){
+  var query = "SELECT price FROM products WHERE item_id = ?";
+  connection.query(query, [id], function (err, res) {
+    for (let i = 0; i < res.length; i++){
+      var yourPrice = res[i].price * parseFloat(count);
+      console.log(`Your total price is: ${yourPrice} dollars`);
+    }
+    connection.end();
+  });
+
+}
+
